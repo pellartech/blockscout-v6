@@ -134,7 +134,7 @@ defmodule BlockScoutWeb.Account.Api.V2.FallbackController do
   def call(conn, {:recaptcha, _}) do
     conn
     |> put_status(:forbidden)
-    |> put_view(ApiView)
+    |> put_view(UserView)
     |> render(:message, %{message: "Invalid reCAPTCHA response"})
   end
 
