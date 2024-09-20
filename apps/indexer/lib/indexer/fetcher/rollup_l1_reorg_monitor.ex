@@ -54,14 +54,12 @@ defmodule Indexer.Fetcher.RollupL1ReorgMonitor do
     modules_using_reorg_monitor =
       modules_can_use_reorg_monitor
       |> Enum.reject(fn module ->
-        cond do
-          module in optimism_modules ->
-            optimism_config = Application.get_all_env(:indexer)[Indexer.Fetcher.Optimism]
-            is_nil(optimism_config[:optimism_l1_system_config])
-
-          true ->
-            module_config = Application.get_all_env(:indexer)[module]
-            is_nil(module_config[:start_block]) and is_nil(module_config[:start_block_l1])
+        if module in optimism_modules do
+          optimism_config = Application.get_all_env(:indexer)[Indexer.Fetcher.Optimism]
+          is_nil(optimism_config[:optimism_l1_system_config])
+        else
+          module_config = Application.get_all_env(:indexer)[module]
+          is_nil(module_config[:start_block]) and is_nil(module_config[:start_block_l1])
         end
       end)
 
