@@ -227,6 +227,7 @@ defmodule Explorer.Helper do
       sent_at
       |> DateTime.add(interval, :millisecond)
       |> DateTime.diff(now, :second)
+    end
   end
 
   @doc """
