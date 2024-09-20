@@ -46,6 +46,7 @@ defmodule Indexer.Fetcher.RollupL1ReorgMonitor do
           Indexer.Fetcher.PolygonEdge.Deposit,
           Indexer.Fetcher.PolygonEdge.WithdrawalExit,
           Indexer.Fetcher.PolygonZkevm.BridgeL1,
+          Indexer.Fetcher.Scroll.Batch,
           Indexer.Fetcher.Scroll.BridgeL1,
           Indexer.Fetcher.Shibarium.L1
         ]
@@ -53,12 +54,14 @@ defmodule Indexer.Fetcher.RollupL1ReorgMonitor do
     modules_using_reorg_monitor =
       modules_can_use_reorg_monitor
       |> Enum.reject(fn module ->
-        if module in optimism_modules do
-          optimism_config = Application.get_all_env(:indexer)[Indexer.Fetcher.Optimism]
-          is_nil(optimism_config[:optimism_l1_system_config])
-        else
-          module_config = Application.get_all_env(:indexer)[module]
-          is_nil(module_config[:start_block]) and is_nil(module_config[:start_block_l1])
+        cond do
+          module in optimism_modules ->
+            optimism_config = Application.get_all_env(:indexer)[Indexer.Fetcher.Optimism]
+            is_nil(optimism_config[:optimism_l1_system_config])
+
+          true ->
+            module_config = Application.get_all_env(:indexer)[module]
+            is_nil(module_config[:start_block]) and is_nil(module_config[:start_block_l1])
         end
       end)
 
@@ -87,6 +90,9 @@ defmodule Indexer.Fetcher.RollupL1ReorgMonitor do
           ) ->
             # there can be more than one Optimism.* modules, so we get the common L1 RPC URL for them from Indexer.Fetcher.Optimism
             Application.get_all_env(:indexer)[Indexer.Fetcher.Optimism][:optimism_l1_rpc]
+
+          module_using_reorg_monitor == Indexer.Fetcher.Scroll.Batch ->
+            Application.get_all_env(:indexer)[Indexer.Fetcher.Scroll.BridgeL1][:rpc]
 
           true ->
             Application.get_all_env(:indexer)[module_using_reorg_monitor][:rpc]
@@ -118,7 +124,7 @@ defmodule Indexer.Fetcher.RollupL1ReorgMonitor do
           prev_latest: prev_latest
         } = state
       ) do
-    {:ok, latest} = Helper.get_block_number_by_tag("latest", json_rpc_named_arguments, 100_000_000)
+    {:ok, latest} = Helper.get_block_number_by_tag("latest", json_rpc_named_arguments, Helper.infinite_retries_number())
 
     if latest < prev_latest do
       Logger.warning("Reorg detected: previous latest block ##{prev_latest}, current latest block ##{latest}.")
