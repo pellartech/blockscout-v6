@@ -108,9 +108,9 @@ defmodule Indexer.Helper do
     first_block = max(last_safe_block - @block_check_interval_range_size, 1)
 
     with {:ok, first_block_timestamp} <-
-           get_block_timestamp_by_number(first_block, json_rpc_named_arguments, 100_000_000),
+           get_block_timestamp_by_number(first_block, json_rpc_named_arguments, @infinite_retries_number),
          {:ok, last_safe_block_timestamp} <-
-           get_block_timestamp_by_number(last_safe_block, json_rpc_named_arguments, 100_000_000) do
+           get_block_timestamp_by_number(last_safe_block, json_rpc_named_arguments, @infinite_retries_number) do
       block_check_interval =
         ceil((last_safe_block_timestamp - first_block_timestamp) / (last_safe_block - first_block) * 1000 / 2)
 
@@ -139,8 +139,9 @@ defmodule Indexer.Helper do
       {:ok, safe_block} ->
         {safe_block, false}
 
-      {:error, :not_found} ->
-        {:ok, latest_block} = get_block_number_by_tag("latest", json_rpc_named_arguments, 100_000_000)
+      {:error, _} ->
+        {:ok, latest_block} = get_block_number_by_tag("latest", json_rpc_named_arguments, @infinite_retries_number)
+
         {latest_block, true}
     end
   end
@@ -238,7 +239,10 @@ defmodule Indexer.Helper do
     - `from_block`: The starting block number (integer or hexadecimal string) for the log search.
     - `to_block`: The ending block number (integer or hexadecimal string) for the log search.
     - `address`: The address of the contract to filter logs from.
-    - `topics`: List of topics to filter the logs.
+    - `topics`: List of topics to filter the logs. The list represents each topic as follows:
+                [topic0, topic1, topic2, topic3]. The `topicN` can be either some value or
+                a list of possible values, e.g.: [[topic0_1, topic0_2], topic1, topic2, topic3].
+                If a topic is omitted or `nil`, it doesn't take part in the logs filtering.
     - `json_rpc_named_arguments`: Configuration for the JSON-RPC call.
     - `id`: (optional) JSON-RPC request identifier, defaults to 0.
     - `retries`: (optional) Number of retry attempts if the request fails, defaults to 3.
